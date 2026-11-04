@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 36" fill="none" class="w-auto h-8">
+  <style>
+    .bill-text {
+      font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+      font-weight: 800;
+      font-style: italic;
+      font-size: 28px;
+      stroke: #111111;
+      stroke-width: 1.6;
+      fill: transparent;
+      letter-spacing: -0.5px;
+    }
+    .mate-text {
+      font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+      font-weight: 800;
+      font-style: italic;
+      font-size: 28px;
+      fill: #9AD72B;
+      letter-spacing: -0.5px;
+    }
+  </style>
+  <text x="0" y="27">
+    <tspan class="bill-text">Bill</tspan>
+    <tspan class="mate-text">Mate</tspan>
+  </text>
+</svg>
+
