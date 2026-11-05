@@ -1,4 +1,10 @@
 
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import PersonalFinance from './pages/PersonalFinance';
+import Budget from './pages/Budget';
+
 import { useState } from 'react';
 import {
   BrowserRouter,
@@ -36,7 +42,7 @@ function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white text-ink flex flex-col font-sans pb-20 md:pb-0">
-      <Navbar onLoginClick={() => handleOpenWaitlist('Akun')} />
+      <Navbar onLoginClick={() => navigate('/login')} />
 
       <main className="flex-1">
         <Hero />
@@ -65,9 +71,17 @@ export function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/split-bill" element={<SplitBill />} />
-      </Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/split-bill" element={<SplitBill />} />
+          <Route path="/personal-finance/budget" element={<Budget />}
+/>
+          <Route path="/personal-finance"
+  element={<PersonalFinance />}
+/>
+        </Routes>
     </BrowserRouter>
   );
 }
