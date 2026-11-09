@@ -165,7 +165,7 @@ export default function Dashboard() {
       </main>
 
       {/* Footer */}
-      <footer className="text-center py-6 text-sm text-gray-400">
+      <footer className="text-center py-6 pb-24 md:py-6 text-sm text-gray-400">
         © 2026 BillMate. All rights reserved.
       </footer>
 

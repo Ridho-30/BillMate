@@ -1,0 +1,43 @@
+<svg width="400" height="600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <style>
+    .title { font-family: monospace; font-size: 20px; font-weight: bold; text-anchor: middle; }
+    .text { font-family: monospace; font-size: 14px; fill: #111; }
+    .bold { font-family: monospace; font-size: 14px; font-weight: bold; fill: #111; }
+    .line { stroke: #333; stroke-width: 1; stroke-dasharray: 4,4; }
+  </style>
+  <text x="200" y="45" class="title">KOPI KENANGAN</text>
+  <text x="200" y="70" class="text" text-anchor="middle">Jl. Sudirman No. 123, Jakarta</text>
+  <text x="200" y="90" class="text" text-anchor="middle">09/11/2026 20:15</text>
+  
+  <line x1="20" y1="110" x2="380" y2="110" class="line"/>
+
+  <text x="25" y="140" class="bold">1 Kopi Kenangan Mantan</text>
+  <text x="320" y="140" class="text">18.000</text>
+  
+  <text x="25" y="175" class="bold">2 Toast Coklat</text>
+  <text x="320" y="175" class="text">24.000</text>
+  <text x="40" y="195" class="text" fill="#666">@ 12.000</text>
+
+  <text x="25" y="230" class="bold">1 Lemon Tea Ice</text>
+  <text x="320" y="230" class="text">15.000</text>
+
+  <line x1="20" y1="260" x2="380" y2="260" class="line"/>
+
+  <text x="25" y="290" class="text">Subtotal</text>
+  <text x="320" y="290" class="text">57.000</text>
+
+  <text x="25" y="320" class="text">PB1 10%</text>
+  <text x="320" y="320" class="text">5.700</text>
+
+  <text x="25" y="350" class="text">Service 5%</text>
+  <text x="320" y="350" class="text">2.850</text>
+
+  <line x1="20" y1="380" x2="380" y2="380" class="line"/>
+
+  <text x="25" y="415" class="title" text-anchor="start" font-size="18px">TOTAL</text>
+  <text x="310" y="415" class="title" text-anchor="start" font-size="18px">65.550</text>
+
+  <line x1="20" y1="440" x2="380" y2="440" class="line"/>
+  <text x="200" y="480" class="text" text-anchor="middle">Terima Kasih Atas Kunjungan Anda</text>
+</svg>

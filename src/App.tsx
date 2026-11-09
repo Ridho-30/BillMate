@@ -25,6 +25,9 @@ import { StickyCta } from './components/StickyCta';
 import { WaitlistModal } from './components/WaitlistModal';
 import { PricingPlan } from './data/landingData';
 import SplitBill from './pages/SplitBill';
+import Profile from './pages/Profile';
+import Upgrade from './pages/Upgrade';
+import { MobileBottomNav } from './components/MobileBottomNav';
 
 function LandingPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -71,17 +74,18 @@ export function App() {
   return (
     <BrowserRouter>
       <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/split-bill" element={<SplitBill />} />
-          <Route path="/personal-finance/budget" element={<Budget />}
-/>
-          <Route path="/personal-finance"
-  element={<PersonalFinance />}
-/>
-        </Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/split-bill" element={<SplitBill />} />
+        <Route path="/coba" element={<SplitBill />} />
+        <Route path="/personal-finance/budget" element={<Budget />} />
+        <Route path="/personal-finance" element={<PersonalFinance />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/upgrade" element={<Upgrade />} />
+      </Routes>
+      <MobileBottomNav />
     </BrowserRouter>
   );
 }
