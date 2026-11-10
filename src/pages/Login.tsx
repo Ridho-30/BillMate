@@ -4,6 +4,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
+  setPersistence,
+  browserLocalPersistence,
 } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 
@@ -22,8 +24,12 @@ export default function Login() {
     setLoading(true);
 
     try {
+      // Simpan sesi login di browser
+      await setPersistence(auth, browserLocalPersistence);
+
       await signInWithEmailAndPassword(auth, email, password);
-      navigate('/dashboard');
+
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
       setError(
         err.code === 'auth/invalid-credential'
@@ -42,8 +48,11 @@ export default function Login() {
     setLoading(true);
 
     try {
+      await setPersistence(auth, browserLocalPersistence);
+
       await signInWithPopup(auth, googleProvider);
-     navigate('/dashboard');
+
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
       setError(
         err.code === 'auth/popup-closed-by-user'

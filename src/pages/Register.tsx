@@ -1,11 +1,15 @@
 
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+
 import {
   createUserWithEmailAndPassword,
   updateProfile,
   signInWithPopup,
+  setPersistence,
+  browserLocalPersistence,
 } from 'firebase/auth';
+
 import { auth, googleProvider } from '../firebase';
 
 export default function Register() {
@@ -35,6 +39,9 @@ export default function Register() {
     setLoading(true);
 
     try {
+      // Simpan sesi login di browser
+      await setPersistence(auth, browserLocalPersistence);
+
       const result = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -45,7 +52,8 @@ export default function Register() {
         displayName: name.trim(),
       });
 
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
+
     } catch (err: any) {
       if (err.code === 'auth/email-already-in-use') {
         setError('Email sudah terdaftar. Silakan login.');
@@ -66,8 +74,12 @@ export default function Register() {
     setLoading(true);
 
     try {
+      await setPersistence(auth, browserLocalPersistence);
+
       await signInWithPopup(auth, googleProvider);
-      navigate('/split-bill');
+
+      navigate('/dashboard', { replace: true });
+
     } catch (err: any) {
       setError(
         err.code === 'auth/popup-closed-by-user'

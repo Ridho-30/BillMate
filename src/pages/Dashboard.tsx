@@ -152,10 +152,11 @@ export default function Dashboard() {
 
             <button
               type="button"
-              disabled
-              className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-400 font-semibold py-3 rounded-xl cursor-not-allowed"
+              onClick={() => navigate('/group-wallet')}
+              className="w-full flex items-center justify-center gap-2 bg-[#91D624] hover:bg-[#82C51C] text-black font-bold py-3 rounded-xl transition"
             >
-              Segera Hadir
+              Buka Fitur
+              <ArrowRight size={18} />
             </button>
 
           </div>
