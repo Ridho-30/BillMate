@@ -354,11 +354,6 @@ const handleJoinGroup = async (e: FormEvent<HTMLFormElement>) => {
           <p className="text-gray-500">
             Kelola iuran, simpan QRIS, dan pantau kontribusi seluruh anggota grup.
           </p>
-
-          <div className="mt-5 inline-flex items-center gap-2 bg-[#EFF9DE] text-[#568D13] px-4 py-3 rounded-xl font-semibold">
-            <Wallet size={20} />
-            Target default: {formatRupiah(DEFAULT_TARGET_IURAN)} / anggota
-          </div>
         </section>
 
         {/* TOMBOL AKSI */}

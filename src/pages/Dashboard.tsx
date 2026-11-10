@@ -81,7 +81,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
           {/* Personal Finance */}
-          <div className="bg-white border-2 border-[#91D624] rounded-2xl p-7 hover:shadow-lg transition duration-300">
+          <div className="bg-white border border-gray-200 rounded-2xl p-7 flex flex-col hover:shadow-lg transition duration-300">
 
             <div className="w-14 h-14 bg-[#EFF9DE] rounded-xl flex items-center justify-center mb-6">
               <Wallet size={28} className="text-[#75B51B]" />
@@ -99,7 +99,7 @@ export default function Dashboard() {
             <button
               type="button"
               onClick={() => navigate('/personal-finance')}
-              className="w-full flex items-center justify-center gap-2 bg-[#91D624] hover:bg-[#82C51C] text-black font-bold py-3 rounded-xl transition"
+              className="w-full mt-auto flex items-center justify-center gap-2 bg-[#91D624] hover:bg-[#82C51C] text-black font-bold py-3 rounded-xl transition"
             >
               Buka Fitur
               <ArrowRight size={18} />
@@ -108,7 +108,7 @@ export default function Dashboard() {
           </div>
 
           {/* Split Bill */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-7 hover:shadow-lg transition duration-300">
+          <div className="bg-white border border-gray-200 rounded-2xl p-7 flex flex-col hover:shadow-lg transition duration-300">
 
             <div className="w-14 h-14 bg-[#EFF9DE] rounded-xl flex items-center justify-center mb-6">
               <ReceiptText size={28} className="text-[#75B51B]" />
@@ -126,7 +126,7 @@ export default function Dashboard() {
             <button
               type="button"
               onClick={() => navigate('/split-bill')}
-              className="w-full flex items-center justify-center gap-2 bg-[#91D624] hover:bg-[#82C51C] text-black font-bold py-3 rounded-xl transition"
+              className="w-full mt-auto flex items-center justify-center gap-2 bg-[#91D624] hover:bg-[#82C51C] text-black font-bold py-3 rounded-xl transition"
             >
               Buka Fitur
               <ArrowRight size={18} />
@@ -135,7 +135,7 @@ export default function Dashboard() {
           </div>
 
           {/* Group Wallet */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-7 hover:shadow-lg transition duration-300">
+          <div className="bg-white border border-gray-200 rounded-2xl p-7 flex flex-col hover:shadow-lg transition duration-300">
 
             <div className="w-14 h-14 bg-[#EFF9DE] rounded-xl flex items-center justify-center mb-6">
               <Users size={28} className="text-[#75B51B]" />
@@ -153,7 +153,7 @@ export default function Dashboard() {
             <button
               type="button"
               onClick={() => navigate('/group-wallet')}
-              className="w-full flex items-center justify-center gap-2 bg-[#91D624] hover:bg-[#82C51C] text-black font-bold py-3 rounded-xl transition"
+              className="w-full mt-auto flex items-center justify-center gap-2 bg-[#91D624] hover:bg-[#82C51C] text-black font-bold py-3 rounded-xl transition"
             >
               Buka Fitur
               <ArrowRight size={18} />

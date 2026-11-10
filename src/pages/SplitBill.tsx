@@ -1,5 +1,6 @@
+
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import {
   Plus,
@@ -12,9 +13,9 @@ import {
   Utensils,
   X,
   Save,
+  ArrowLeft,
 } from 'lucide-react';
 import { auth } from '../firebase';
-import { Navbar } from '../components/Navbar';
 import { ReceiptScanButton } from '../components/ReceiptScanButton';
 import { ReceiptScanProgress, ScanStatus } from '../components/ReceiptScanProgress';
 import { compressImage, recognizeReceipt } from '../lib/receiptOcr';
@@ -40,17 +41,17 @@ const formatRupiah = (value: number) =>
     maximumFractionDigits: 0,
   }).format(value);
 
-/**
- * Mengambil nama pertama (first name) user untuk dijadikan anggota awal otomatis
- * Contoh: "Ridho Rizky Prasetyo" -> "Ridho"
- */
 function extractFirstName(user: FirebaseUser | null): string {
   if (!user) return 'Saya';
+
   const raw = (user.displayName || user.email?.split('@')[0] || '').trim();
   if (!raw) return 'Saya';
+
   const cleaned = raw.replace(/[._-]+/g, ' ').trim();
   const firstWord = cleaned.split(/\s+/)[0] || '';
+
   if (!firstWord) return 'Saya';
+
   return firstWord.charAt(0).toUpperCase() + firstWord.slice(1);
 }
 
@@ -63,6 +64,7 @@ type OriginalScanSnapshot = {
 
 function SplitBill() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isGuestUrl = location.pathname === '/coba';
 
   const [activity, setActivity] = useState('Makan Mabar Bareng');
@@ -78,7 +80,7 @@ function SplitBill() {
   const [newItemPrice, setNewItemPrice] = useState('');
   const [newItemQuantity, setNewItemQuantity] = useState('1');
 
-  // State untuk Fitur Auto Scan Receipt
+  // State untuk fitur Auto Scan Receipt
   const [quota, setQuota] = useState<UserQuota>({
     isGuest: isGuestUrl,
     userId: null,
@@ -120,11 +122,12 @@ function SplitBill() {
     loadQuota();
   }, [isGuestUrl]);
 
-  // Otomatis masukkan user yang sedang login sebagai anggota awal jika belum ada anggota
+  // Otomatis masukkan user yang sedang login sebagai anggota awal
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser && !isGuestUrl) {
         const firstName = extractFirstName(currentUser);
+
         setMembers((prev) => {
           if (prev.length === 0) {
             return [{ id: 1, name: firstName, paid: false }];
@@ -137,24 +140,28 @@ function SplitBill() {
     return () => unsubscribe();
   }, [isGuestUrl]);
 
-  // Efek untuk menangani struk yang dipindai dari modal navbar mobile
+  // Menangani struk yang dipindai dari modal navbar mobile
   useEffect(() => {
     const autoFill = (location.state as any)?.autoFillReceipt;
+
     if (autoFill) {
       if (autoFill.activity) setActivity(autoFill.activity);
+
       if (Array.isArray(autoFill.items) && autoFill.items.length > 0) {
         setItems(autoFill.items);
       }
+
       if (typeof autoFill.taxPercent === 'number') setTax(autoFill.taxPercent);
       if (typeof autoFill.servicePercent === 'number') setService(autoFill.servicePercent);
       if (typeof autoFill.discount === 'number') setDiscount(autoFill.discount);
+
       if (typeof autoFill.receiptGrandTotal === 'number') {
         setReceiptGrandTotal(autoFill.receiptGrandTotal);
       }
 
-      // Pastikan user yang login terdaftar sebagai anggota jika belum ada anggota
       if (auth.currentUser && !isGuestUrl) {
         const firstName = extractFirstName(auth.currentUser);
+
         setMembers((prev) => {
           if (prev.length === 0) {
             return [{ id: 1, name: firstName, paid: false }];
@@ -175,13 +182,11 @@ function SplitBill() {
       });
 
       setScanStatus('success');
-
-      // Bersihkan history state agar tidak mengisi ulang jika user me-refresh halaman
       window.history.replaceState({}, document.title);
     }
   }, [location.state, isGuestUrl]);
 
-  // Perhitungan Keuangan
+  // Perhitungan keuangan
   const subtotal = items.reduce(
     (total, item) => total + item.price * item.quantity,
     0
@@ -191,10 +196,9 @@ function SplitBill() {
   const serviceAmount = Math.round((subtotal * service) / 100);
   const grandTotal = Math.max(0, subtotal + taxAmount + serviceAmount - discount);
 
-  // Validasi kecocokan dengan struk secara dinamis
+  // Validasi kecocokan dengan struk
   const hasMismatch = useMemo(() => {
     if (receiptGrandTotal === null || receiptGrandTotal <= 0) return false;
-    // Toleransi pembulatan +- 1 rupiah
     return Math.abs(grandTotal - receiptGrandTotal) > 1;
   }, [grandTotal, receiptGrandTotal]);
 
@@ -204,16 +208,14 @@ function SplitBill() {
         if (!item.memberIds.includes(member.id)) return total;
         if (item.memberIds.length === 0) return total;
 
-        // Porsi anggota ini pada item (default 1)
         const memberPortion = item.memberPortions?.[member.id] ?? 1;
-        // Total seluruh porsi yang dibagi di item ini
+
         const totalPortions = item.memberIds.reduce((sum, mId) => {
           return sum + (item.memberPortions?.[mId] ?? 1);
         }, 0);
 
         if (totalPortions <= 0) return total;
 
-        // Biaya item dialokasikan secara proporsional sesuai porsi yang diambil
         const itemTotal = item.price * item.quantity;
         return total + (itemTotal * memberPortion) / totalPortions;
       }, 0);
@@ -246,7 +248,7 @@ function SplitBill() {
     return result;
   }, [members, items, grandTotal]);
 
-  // Handler Proses Foto Struk
+  // Handler proses foto struk
   const handleProcessReceiptFile = async (file: File) => {
     lastSelectedFileRef.current = file;
     setScanError(null);
@@ -254,42 +256,41 @@ function SplitBill() {
     setSavedSuccessMessage(null);
 
     try {
-      // 1. Kompresi gambar di browser
       setScanStatus('compressing');
       const compressedDataUrl = await compressImage(file);
 
-      // 2. OCR Tesseract.js (berjalan 100% lokal di browser)
       setScanStatus('ocr');
       const rawText = await recognizeReceipt(compressedDataUrl, (pct) => {
         setOcrProgress(pct);
       });
 
       if (!rawText || !rawText.trim()) {
-        throw new Error('Tidak ada teks yang dapat dibaca dari foto struk. Pastikan foto memiliki pencahayaan cukup dan teks terlihat fokus.');
+        throw new Error(
+          'Tidak ada teks yang dapat dibaca dari foto struk. Pastikan foto memiliki pencahayaan cukup dan teks terlihat fokus.'
+        );
       }
 
-      // 3. Parsing JSON terstruktur via AI OCR API
       setScanStatus('ai');
       const ocrParsed = await parseReceipt(rawText);
-
-      // 4. Transformasi ke format form Split Bill
       const mapped = mapOcrResponseToBill(ocrParsed);
 
       if (mapped.items.length === 0) {
-        throw new Error('Tidak ditemukan item belanja yang valid pada struk. Silakan periksa kembali foto atau masukkan manual.');
+        throw new Error(
+          'Tidak ditemukan item belanja yang valid pada struk. Silakan periksa kembali foto atau masukkan manual.'
+        );
       }
 
-      // 5. Isi form dengan hasil pemindaian (Buat Split Bill Baru otomatis)
       if (mapped.activity) setActivity(mapped.activity);
+
       setItems(mapped.items);
       setTax(mapped.taxPercent);
       setService(mapped.servicePercent);
       setDiscount(mapped.discount);
       setReceiptGrandTotal(mapped.receiptGrandTotal);
 
-      // Pastikan ada anggota (minimal user yang sedang login)
       if (auth.currentUser && !isGuestUrl) {
         const firstName = extractFirstName(auth.currentUser);
+
         setMembers((prev) => {
           if (prev.length === 0) {
             return [{ id: 1, name: firstName, paid: false }];
@@ -298,7 +299,6 @@ function SplitBill() {
         });
       }
 
-      // Simpan snapshot untuk melacak apakah user mengoreksi hasil scan
       setOriginalSnapshot({
         items: mapped.items.map((it) => ({
           name: it.name,
@@ -312,13 +312,14 @@ function SplitBill() {
 
       setScanStatus('success');
 
-      // 6. Catat receipt_scans di database (non-blocking agar tidak menggagalkan pengisian form)
       try {
         if (quota.userId) {
           const recordResult = await recordReceiptScan(quota.userId);
+
           if (recordResult?.id) {
             setReceiptScanId(recordResult.id);
           }
+
           setQuota((prev) => ({
             ...prev,
             used: prev.used + 1,
@@ -349,56 +350,58 @@ function SplitBill() {
     setScanError(null);
   };
 
-  // Tangani file scan struk dari modal navbar mobile (baik saat navigasi dari halaman lain maupun saat sudah di /split-bill)
+  // Menangani file scan struk dari modal navbar mobile
   useEffect(() => {
-    // 1. Cek file di memori global (dikirim dari ScanReceiptModal sebelum navigasi)
     const pendingFile = (window as any).__billmatePendingScanFile;
+
     if (pendingFile instanceof File) {
       delete (window as any).__billmatePendingScanFile;
       handleProcessReceiptFile(pendingFile);
       return;
     }
 
-    // 2. scanTimestamp di router state sebagai sinyal bahwa navigasi dari modal scan
     const ts = (location.state as any)?.scanTimestamp;
+
     if (ts) {
-      // Bersihkan state agar tidak diproses ulang saat refresh
       window.history.replaceState({}, document.title);
-      // File sudah dipegang window global — sudah ditangani di atas
     }
   }, [location.state]);
 
-  // 3. Listener event custom untuk reaksi instan tanpa reload saat modal navbar digunakan di /split-bill
+  // Listener event custom untuk scan dari modal navbar
   useEffect(() => {
     const handleScanFileEvent = (e: any) => {
       const file = e.detail;
+
       if (file instanceof File) {
         handleProcessReceiptFile(file);
       }
     };
 
     window.addEventListener('billmate:process-scan-file', handleScanFileEvent);
+
     return () => {
       window.removeEventListener('billmate:process-scan-file', handleScanFileEvent);
     };
   }, []);
 
-  // Simpan Tagihan & Deteksi Koreksi User
+  // Simpan tagihan dan deteksi koreksi user
   const handleSaveBill = async () => {
     if (hasMismatch) {
       const confirmSave = window.confirm(
         'Perhatian: Total hasil scan tidak cocok dengan struk. Apakah Anda yakin ingin tetap menyimpan tagihan ini?'
       );
+
       if (!confirmSave) return;
     }
 
-    // Periksa apakah user mengoreksi hasil scan
     if (receiptScanId && originalSnapshot) {
       const hasItemChanges =
         items.length !== originalSnapshot.items.length ||
         items.some((item, idx) => {
           const orig = originalSnapshot.items[idx];
+
           if (!orig) return true;
+
           return (
             orig.name !== item.name ||
             orig.price !== item.price ||
@@ -412,12 +415,12 @@ function SplitBill() {
         discount !== originalSnapshot.discount;
 
       if (hasItemChanges || hasFeeChanges) {
-        // Tandai dikoreksi = true pada receipt_scans
         await markReceiptScanCorrected(receiptScanId);
       }
     }
 
     setSavedSuccessMessage('Tagihan berhasil disimpan!');
+
     setTimeout(() => {
       setSavedSuccessMessage(null);
     }, 4000);
@@ -440,10 +443,12 @@ function SplitBill() {
 
   const removeMember = (id: number) => {
     setMembers(members.filter((member) => member.id !== id));
+
     setItems(
       items.map((item) => {
         const updatedPortions = { ...(item.memberPortions || {}) };
         delete updatedPortions[id];
+
         return {
           ...item,
           memberIds: item.memberIds.filter((memberId) => memberId !== id),
@@ -488,20 +493,23 @@ function SplitBill() {
     setItems(
       items.map((item) => {
         if (item.id !== id) return item;
+
         return {
           ...item,
-          [field]: field === 'name' ? String(value) : Math.max(0, Number(value)),
+          [field]:
+            field === 'name'
+              ? String(value)
+              : Math.max(0, Number(value)),
         };
       })
     );
   };
 
-  /**
-   * Menambah / Mengurangi porsi seorang anggota untuk item tertentu
-   * - Jika belum dipilih & delta > 0: pilih anggota dengan 1 porsi
-   * - Jika porsi berkurang hingga 0: batalkan pilihan (hapus dari memberIds)
-   */
-  const changeMemberPortion = (itemId: number, memberId: number, delta: number) => {
+  const changeMemberPortion = (
+    itemId: number,
+    memberId: number,
+    delta: number
+  ) => {
     setItems((prevItems) =>
       prevItems.map((item) => {
         if (item.id !== itemId) return item;
@@ -520,6 +528,7 @@ function SplitBill() {
               },
             };
           }
+
           return item;
         }
 
@@ -528,6 +537,7 @@ function SplitBill() {
         if (newPortion <= 0) {
           const updatedPortions = { ...(item.memberPortions || {}) };
           delete updatedPortions[memberId];
+
           return {
             ...item,
             memberIds: item.memberIds.filter((id) => id !== memberId),
@@ -568,7 +578,26 @@ function SplitBill() {
 
   return (
     <div className="min-h-screen bg-white text-ink font-sans">
-      <Navbar isSplitBillPage />
+      {/* Navbar disamakan dengan Group Wallet */}
+      <header className="bg-white border-b border-gray-200">
+        <div className="max-w-6xl mx-auto px-5 py-5 flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard')}
+            className="p-2 rounded-xl hover:bg-gray-100 transition"
+            aria-label="Kembali"
+          >
+            <ArrowLeft size={22} />
+          </button>
+
+          <div>
+            <h1 className="text-2xl font-black italic">
+              Bill<span className="text-[#91D624]">Mate</span>
+            </h1>
+            <p className="text-sm text-gray-500">Split Bill</p>
+          </div>
+        </div>
+      </header>
 
       <main className="mx-auto max-w-6xl px-5 py-8 md:py-12">
         <div className="mb-8">
@@ -582,11 +611,12 @@ function SplitBill() {
           </h1>
 
           <p className="mt-3 max-w-xl text-sm leading-6 text-ink-muted md:text-base">
-            Pindai struk belanja dengan AI atau masukkan pesanan masing-masing, biarkan BillMate menghitung pembagian tagihan secara otomatis.
+            Pindai struk belanja dengan AI atau masukkan pesanan masing-masing,
+            biarkan BillMate menghitung pembagian tagihan secara otomatis.
           </p>
         </div>
 
-        {/* Notifikasi Tagihan Tersimpan */}
+        {/* Notifikasi tagihan tersimpan */}
         {savedSuccessMessage && (
           <div className="mb-6 flex items-center gap-3 rounded-2xl border border-lime bg-lime-tint/70 p-4 shadow-sm animate-fade-in">
             <CheckCircle2 className="text-ink" size={20} />
@@ -596,7 +626,7 @@ function SplitBill() {
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
-            {/* Bagian Auto Scan Struk */}
+            {/* Auto Scan Struk */}
             <ReceiptScanButton
               quota={quota}
               isProcessing={
@@ -607,7 +637,6 @@ function SplitBill() {
               onFileSelect={handleProcessReceiptFile}
             />
 
-            {/* Indikator Status & Progres Pemindaian Struk */}
             <ReceiptScanProgress
               status={scanStatus}
               ocrProgress={ocrProgress}
@@ -618,21 +647,25 @@ function SplitBill() {
               onDismissWarning={() => setReceiptGrandTotal(null)}
             />
 
-            {/* Bagian Informasi Tagihan */}
+            {/* Informasi Tagihan */}
             <section className="rounded-2xl border border-line bg-white p-5 shadow-sm md:p-6">
               <div className="mb-5 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-lime text-ink">
                   <Receipt size={20} />
                 </div>
+
                 <div>
                   <h2 className="font-bold text-ink">Informasi Tagihan</h2>
-                  <p className="text-xs text-ink-muted">Detail aktivitas bersama</p>
+                  <p className="text-xs text-ink-muted">
+                    Detail aktivitas bersama
+                  </p>
                 </div>
               </div>
 
               <label className="mb-2 block text-sm font-medium">
                 Nama aktivitas
               </label>
+
               <input
                 value={activity}
                 onChange={(e) => setActivity(e.target.value)}
@@ -641,13 +674,14 @@ function SplitBill() {
               />
             </section>
 
-            {/* Bagian Anggota */}
+            {/* Anggota */}
             <section className="rounded-2xl border border-line bg-white p-5 shadow-sm md:p-6">
               <div className="mb-5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-lime/30 text-ink">
                     <Users size={20} />
                   </div>
+
                   <div>
                     <h2 className="font-bold text-ink">Anggota</h2>
                     <p className="text-xs text-ink-muted">
@@ -666,7 +700,9 @@ function SplitBill() {
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-lime text-xs font-bold text-ink">
                       {member.name.charAt(0).toUpperCase()}
                     </div>
+
                     <span className="text-sm font-medium">{member.name}</span>
+
                     <button
                       type="button"
                       onClick={() => removeMember(member.id)}
@@ -687,6 +723,7 @@ function SplitBill() {
                   className={inputClass}
                   placeholder="Masukkan nama anggota"
                 />
+
                 <button
                   type="button"
                   onClick={addMember}
@@ -698,17 +735,19 @@ function SplitBill() {
               </div>
             </section>
 
-            {/* Bagian Daftar Pesanan */}
+            {/* Daftar Pesanan */}
             <section className="rounded-2xl border border-line bg-white p-5 shadow-sm md:p-6">
               <div className="mb-5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-lime/30 text-ink">
                     <Utensils size={20} />
                   </div>
+
                   <div>
                     <h2 className="font-bold text-ink">Daftar Pesanan</h2>
                     <p className="text-xs text-ink-muted">
-                      {items.length} item pesanan • Tentukan siapa yang memesan setiap item
+                      {items.length} item pesanan • Tentukan siapa yang
+                      memesan setiap item
                     </p>
                   </div>
                 </div>
@@ -732,13 +771,15 @@ function SplitBill() {
                   >
                     <div className="mb-3 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                       <div className="flex-1 space-y-2">
-                        {/* Input nama item (bisa langsung dikoreksi oleh user) */}
                         <input
                           value={item.name}
-                          onChange={(e) => updateItem(item.id, 'name', e.target.value)}
+                          onChange={(e) =>
+                            updateItem(item.id, 'name', e.target.value)
+                          }
                           className="w-full font-semibold text-ink text-sm sm:text-base border-b border-transparent hover:border-line focus:border-ink focus:outline-none py-1"
                           placeholder="Nama item"
                         />
+
                         <div className="flex items-center gap-2 text-xs text-ink-muted">
                           <label className="flex items-center gap-1">
                             <span>Qty:</span>
@@ -752,7 +793,9 @@ function SplitBill() {
                               className="w-14 rounded-lg border border-line px-2 py-1 text-center text-xs font-semibold text-ink focus:border-ink focus:outline-none"
                             />
                           </label>
+
                           <span>×</span>
+
                           <label className="flex items-center gap-1">
                             <span>Rp</span>
                             <input
@@ -772,6 +815,7 @@ function SplitBill() {
                         <p className="font-bold text-ink">
                           {formatRupiah(item.price * item.quantity)}
                         </p>
+
                         <button
                           type="button"
                           onClick={() => removeItem(item.id)}
@@ -787,6 +831,7 @@ function SplitBill() {
                       <p className="text-xs font-semibold text-ink-muted">
                         Siapa yang memesan?
                       </p>
+
                       {item.quantity > 1 && (
                         <span className="text-[11px] text-ink-muted/80">
                           Total item: <strong>{item.quantity} porsi</strong>
@@ -807,16 +852,25 @@ function SplitBill() {
                             >
                               <button
                                 type="button"
-                                onClick={() => changeMemberPortion(item.id, member.id, -1)}
+                                onClick={() =>
+                                  changeMemberPortion(item.id, member.id, -1)
+                                }
                                 className="w-7 h-7 rounded-lg bg-white/90 hover:bg-white text-ink font-bold flex items-center justify-center transition active:scale-90 text-sm shadow-xs border border-line/40"
-                                title={portion === 1 ? 'Batalkan pilihan' : 'Kurangi 1 porsi'}
+                                title={
+                                  portion === 1
+                                    ? 'Batalkan pilihan'
+                                    : 'Kurangi 1 porsi'
+                                }
                                 aria-label={`Kurangi porsi ${member.name}`}
                               >
                                 <Minus size={13} />
                               </button>
 
                               <div className="px-1.5 flex items-center gap-1.5 select-none">
-                                <span className="text-xs font-bold text-ink">{member.name}</span>
+                                <span className="text-xs font-bold text-ink">
+                                  {member.name}
+                                </span>
+
                                 <span className="inline-flex items-center justify-center rounded-md bg-ink px-1.5 py-0.5 text-[11px] font-extrabold text-lime leading-none">
                                   {portion}x
                                 </span>
@@ -824,7 +878,9 @@ function SplitBill() {
 
                               <button
                                 type="button"
-                                onClick={() => changeMemberPortion(item.id, member.id, 1)}
+                                onClick={() =>
+                                  changeMemberPortion(item.id, member.id, 1)
+                                }
                                 className="w-7 h-7 rounded-lg bg-ink hover:bg-ink-muted text-white font-bold flex items-center justify-center transition active:scale-90 text-sm shadow-xs"
                                 title="Tambah 1 porsi"
                                 aria-label={`Tambah porsi ${member.name}`}
@@ -839,7 +895,9 @@ function SplitBill() {
                           <button
                             key={member.id}
                             type="button"
-                            onClick={() => changeMemberPortion(item.id, member.id, 1)}
+                            onClick={() =>
+                              changeMemberPortion(item.id, member.id, 1)
+                            }
                             className="min-h-[44px] rounded-xl border border-line bg-white px-3.5 py-2 text-xs font-semibold text-ink-muted hover:border-ink hover:text-ink hover:bg-gray-50 transition flex items-center gap-1.5 active:scale-95"
                           >
                             <Plus size={13} />
@@ -850,7 +908,8 @@ function SplitBill() {
 
                       {members.length === 0 && (
                         <p className="text-xs text-ink-muted/70 italic">
-                          Tambahkan nama anggota di bagian "Anggota" terlebih dahulu.
+                          Tambahkan nama anggota di bagian "Anggota" terlebih
+                          dahulu.
                         </p>
                       )}
                     </div>
@@ -865,19 +924,26 @@ function SplitBill() {
                       }
 
                       const totalPortions = item.memberIds.reduce(
-                        (sum, mId) => sum + (item.memberPortions?.[mId] ?? 1),
+                        (sum, mId) =>
+                          sum + (item.memberPortions?.[mId] ?? 1),
                         0
                       );
+
                       const itemTotal = item.price * item.quantity;
+
                       const pricePerPortion =
-                        totalPortions > 0 ? Math.round(itemTotal / totalPortions) : 0;
+                        totalPortions > 0
+                          ? Math.round(itemTotal / totalPortions)
+                          : 0;
+
                       const isExactMatch = totalPortions === item.quantity;
 
                       return (
                         <div className="mt-3 space-y-1.5 pt-2 border-t border-line/50">
                           <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                             <span className="font-semibold text-ink">
-                              {totalPortions} porsi terbagi ({formatRupiah(pricePerPortion)}/porsi)
+                              {totalPortions} porsi terbagi (
+                              {formatRupiah(pricePerPortion)}/porsi)
                             </span>
 
                             {item.quantity > 1 && (
@@ -895,20 +961,27 @@ function SplitBill() {
                             )}
                           </div>
 
-                          {/* Rincian cepat pembagian per orang */}
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-muted">
                             {item.memberIds.map((mId, idx) => {
                               const mName =
-                                members.find((m) => m.id === mId)?.name || 'Anggota';
+                                members.find((m) => m.id === mId)?.name ||
+                                'Anggota';
+
                               const p = item.memberPortions?.[mId] ?? 1;
+
                               const memberCost = Math.round(
                                 (itemTotal * p) / totalPortions
                               );
+
                               return (
                                 <span key={mId}>
-                                  {idx > 0 && <span className="opacity-40 mr-3">•</span>}
-                                  <strong className="text-ink font-semibold">{mName}</strong>:{' '}
-                                  {p}x ({formatRupiah(memberCost)})
+                                  {idx > 0 && (
+                                    <span className="opacity-40 mr-3">•</span>
+                                  )}
+                                  <strong className="text-ink font-semibold">
+                                    {mName}
+                                  </strong>
+                                  : {p}x ({formatRupiah(memberCost)})
                                 </span>
                               );
                             })}
@@ -921,12 +994,13 @@ function SplitBill() {
 
                 {items.length === 0 && (
                   <div className="rounded-xl bg-gray-50 py-8 text-center text-sm text-ink-muted/70">
-                    Belum ada item pesanan. Scan struk belanja Anda atau tambahkan item secara manual di bawah.
+                    Belum ada item pesanan. Scan struk belanja Anda atau
+                    tambahkan item secara manual di bawah.
                   </div>
                 )}
               </div>
 
-              {/* Form Tambah Item Manual */}
+              {/* Form tambah item manual */}
               <div className="mt-5 border-t border-line pt-5">
                 <h3 className="mb-3 text-sm font-bold text-ink">
                   Tambahkan Item Manual
@@ -939,6 +1013,7 @@ function SplitBill() {
                     className={inputClass}
                     placeholder="Nama item"
                   />
+
                   <input
                     type="number"
                     min="1"
@@ -947,6 +1022,7 @@ function SplitBill() {
                     className={inputClass}
                     placeholder="Harga item (Rp)"
                   />
+
                   <input
                     type="number"
                     min="1"
@@ -956,6 +1032,7 @@ function SplitBill() {
                     className={inputClass}
                     placeholder="Jumlah"
                   />
+
                   <button
                     type="button"
                     onClick={addItem}
@@ -965,22 +1042,28 @@ function SplitBill() {
                     Tambahkan Item
                   </button>
                 </div>
+
                 <p className="mt-2 text-xs text-ink-muted/70">
-                  Setelah item ditambahkan, pilih anggota yang memesan item tersebut.
+                  Setelah item ditambahkan, pilih anggota yang memesan item
+                  tersebut.
                 </p>
               </div>
             </section>
 
-            {/* Bagian Biaya Tambahan & Diskon */}
+            {/* Biaya tambahan dan diskon */}
             <section className="rounded-2xl border border-line bg-white p-5 shadow-sm md:p-6">
               <div className="mb-5 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-lime/30 text-ink">
                   <Calculator size={20} />
                 </div>
+
                 <div>
-                  <h2 className="font-bold text-ink">Biaya Tambahan & Diskon</h2>
+                  <h2 className="font-bold text-ink">
+                    Biaya Tambahan & Diskon
+                  </h2>
                   <p className="text-xs text-ink-muted">
-                    Atur persentase pajak, service charge, serta potongan diskon
+                    Atur persentase pajak, service charge, serta potongan
+                    diskon
                   </p>
                 </div>
               </div>
@@ -990,6 +1073,7 @@ function SplitBill() {
                   <label className="mb-2 block text-sm font-medium">
                     Pajak (%)
                   </label>
+
                   <input
                     type="number"
                     min="0"
@@ -1006,6 +1090,7 @@ function SplitBill() {
                   <label className="mb-2 block text-sm font-medium">
                     Service charge (%)
                   </label>
+
                   <input
                     type="number"
                     min="0"
@@ -1024,6 +1109,7 @@ function SplitBill() {
                   <label className="mb-2 block text-sm font-medium">
                     Diskon (Rp)
                   </label>
+
                   <input
                     type="number"
                     min="0"
@@ -1038,15 +1124,19 @@ function SplitBill() {
               </div>
 
               <p className="mt-3 text-xs text-ink-muted/70">
-                Pajak dan biaya service dihitung proporsional, serta diskon dikurangkan sebelum pembagian total tagihan.
+                Pajak dan biaya service dihitung proporsional, serta diskon
+                dikurangkan sebelum pembagian total tagihan.
               </p>
             </section>
           </div>
 
-          {/* Kolom Samping Ringkasan Pembayaran */}
+          {/* Kolom samping ringkasan pembayaran */}
           <aside className="space-y-6">
             <section className="rounded-2xl bg-dark p-6 text-white shadow-lg">
-              <p className="text-sm font-medium text-white/75">Total Tagihan</p>
+              <p className="text-sm font-medium text-white/75">
+                Total Tagihan
+              </p>
+
               <h2 className="mt-2 text-3xl font-bold">
                 {formatRupiah(grandTotal)}
               </h2>
@@ -1056,27 +1146,31 @@ function SplitBill() {
                   <span>Subtotal</span>
                   <span>{formatRupiah(subtotal)}</span>
                 </div>
+
                 <div className="flex justify-between text-white/75">
                   <span>Pajak ({tax}%)</span>
                   <span>{formatRupiah(taxAmount)}</span>
                 </div>
+
                 <div className="flex justify-between text-white/75">
                   <span>Service ({service}%)</span>
                   <span>{formatRupiah(serviceAmount)}</span>
                 </div>
+
                 {discount > 0 && (
                   <div className="flex justify-between text-lime">
                     <span>Diskon</span>
                     <span>-{formatRupiah(discount)}</span>
                   </div>
                 )}
+
                 <div className="flex justify-between border-t border-white/20 pt-3 font-bold text-base">
                   <span>Grand Total</span>
                   <span>{formatRupiah(grandTotal)}</span>
                 </div>
               </div>
 
-              {/* Tombol Simpan Tagihan */}
+              {/* Tombol simpan tagihan */}
               <div className="mt-6 pt-2">
                 <button
                   type="button"
@@ -1089,7 +1183,7 @@ function SplitBill() {
               </div>
             </section>
 
-            {/* Pembagian Tagihan Per Anggota */}
+            {/* Pembagian tagihan per anggota */}
             <section className="rounded-2xl border border-line bg-white p-5 shadow-sm">
               <div className="mb-5">
                 <h2 className="font-bold text-ink">Pembagian Tagihan</h2>
@@ -1101,8 +1195,8 @@ function SplitBill() {
               <div className="space-y-4">
                 {members.map((member) => {
                   const amount =
-                    calculations.find((item) => item.id === member.id)?.amount ||
-                    0;
+                    calculations.find((item) => item.id === member.id)
+                      ?.amount || 0;
 
                   return (
                     <div
@@ -1114,12 +1208,16 @@ function SplitBill() {
                           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-lime text-sm font-bold text-ink">
                             {member.name.charAt(0).toUpperCase()}
                           </div>
+
                           <div>
                             <p className="text-sm font-semibold text-ink">
                               {member.name}
                             </p>
+
                             <p className="text-xs text-ink-muted/70">
-                              {member.paid ? 'Sudah membayar' : 'Belum membayar'}
+                              {member.paid
+                                ? 'Sudah membayar'
+                                : 'Belum membayar'}
                             </p>
                           </div>
                         </div>
@@ -1128,6 +1226,7 @@ function SplitBill() {
                           <p className="text-sm font-bold text-ink">
                             {formatRupiah(amount)}
                           </p>
+
                           <button
                             type="button"
                             onClick={() => togglePaid(member.id)}
@@ -1147,13 +1246,14 @@ function SplitBill() {
 
                 {members.length === 0 && (
                   <p className="py-4 text-center text-sm text-ink-muted/70">
-                    Belum ada anggota. Tambahkan anggota di sebelah kiri untuk melihat pembagian.
+                    Belum ada anggota. Tambahkan anggota di sebelah kiri untuk
+                    melihat pembagian.
                   </p>
                 )}
               </div>
             </section>
 
-            {/* Ringkasan Status Pembayaran */}
+            {/* Ringkasan status pembayaran */}
             <section className="rounded-2xl border border-line bg-white p-5 shadow-sm">
               <h3 className="mb-4 font-bold text-ink">
                 Ringkasan Pembayaran
@@ -1197,12 +1297,16 @@ function SplitBill() {
             <div className="rounded-xl border border-line bg-lime-tint/60 p-4">
               <div className="flex gap-3">
                 <CheckCircle2 className="shrink-0 text-ink" size={20} />
+
                 <div>
                   <p className="text-sm font-bold text-ink">
                     Pembagian Otomatis & Adil
                   </p>
+
                   <p className="mt-1 text-xs leading-5 text-ink-muted">
-                    BillMate membagi harga item berdasarkan anggota yang dipilih, serta membebankan pajak dan potongan diskon secara proporsional.
+                    BillMate membagi harga item berdasarkan anggota yang
+                    dipilih, serta membebankan pajak dan potongan diskon secara
+                    proporsional.
                   </p>
                 </div>
               </div>
