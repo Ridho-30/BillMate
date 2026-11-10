@@ -232,59 +232,81 @@ export default function GroupWallet() {
   };
 
   // Bergabung dengan grup
-  const handleJoinGroup = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  
+const handleJoinGroup = async (e: FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
 
-    if (!userId) {
-      setMessage("Silakan login terlebih dahulu.");
+  if (!auth.currentUser) {
+    setMessage("Silakan login terlebih dahulu.");
+    return;
+  }
+
+  const currentUserId = auth.currentUser.uid;
+  const code = inviteCodeInput.trim().toUpperCase();
+
+  if (!code) {
+    setMessage("Masukkan kode undangan.");
+    return;
+  }
+
+  setSaving(true);
+  setMessage("");
+
+  try {
+    const groupQuery = query(
+      collection(db, "groups"),
+      where("inviteCode", "==", code)
+    );
+
+    const snapshot = await getDocs(groupQuery);
+
+    if (snapshot.empty) {
+      setMessage("Kode undangan tidak ditemukan.");
       return;
     }
 
-    const code = inviteCodeInput.trim().toUpperCase();
+    const groupDoc = snapshot.docs[0];
+    const groupData = groupDoc.data();
 
-    if (!code) {
-      setMessage("Masukkan kode undangan.");
+    const memberIds: string[] = groupData.memberIds || [];
+
+    if (memberIds.includes(currentUserId)) {
+      setMessage("Kamu sudah menjadi anggota grup ini.");
       return;
     }
 
-    setSaving(true);
-    setMessage("");
+    await updateDoc(doc(db, "groups", groupDoc.id), {
+      memberIds: arrayUnion(currentUserId),
+    });
 
-    try {
-      const groupQuery = query(
-        collection(db, "groups"),
-        where("inviteCode", "==", code)
-      );
+    setInviteCodeInput("");
+    setShowJoin(false);
+    setMessage("Berhasil bergabung ke grup!");
+  } catch (error: unknown) {
+    console.error("Detail error saat bergabung:", error);
 
-      const snapshot = await getDocs(groupQuery);
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error
+    ) {
+      const firebaseError = error as { code: string };
 
-      if (snapshot.empty) {
-        setMessage("Kode undangan tidak ditemukan.");
-        return;
+      if (firebaseError.code === "permission-denied") {
+        setMessage(
+          "Akses ditolak Firestore. Periksa Rules dan pastikan sudah dipublikasikan."
+        );
+      } else {
+        setMessage(`Gagal bergabung: ${firebaseError.code}`);
       }
-
-      const groupDoc = snapshot.docs[0];
-      const groupData = groupDoc.data();
-
-      if (groupData.memberIds?.includes(userId)) {
-        setMessage("Kamu sudah menjadi anggota grup ini.");
-        return;
-      }
-
-      await updateDoc(doc(db, "groups", groupDoc.id), {
-        memberIds: arrayUnion(userId),
-      });
-
-      setInviteCodeInput("");
-      setShowJoin(false);
-      setMessage("Berhasil bergabung ke grup!");
-    } catch (error) {
-      console.error(error);
-      setMessage("Gagal bergabung. Periksa aturan Firestore.");
-    } finally {
-      setSaving(false);
+    } else {
+      setMessage("Terjadi kesalahan saat bergabung ke grup.");
     }
-  };
+  } finally {
+    setSaving(false);
+  }
+};
+
 
   // Menyalin kode undangan
   const copyCode = async (code: string) => {
