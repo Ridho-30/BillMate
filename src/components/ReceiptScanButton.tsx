@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { Camera, Lock, Sparkles, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { Camera, Image as ImageIcon, Lock, Sparkles, AlertCircle, ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { UserQuota } from '../lib/supabase';
 
@@ -9,45 +9,37 @@ type ReceiptScanButtonProps = {
   onFileSelect: (file: File) => void;
 };
 
+/**
+ * Komponen tombol scan struk di halaman Split Bill.
+ * Menyediakan dua opsi: Kamera (via label+input capture) dan Galeri (via label+input biasa).
+ * Menggunakan teknik <label htmlFor> agar tidak diblokir browser mobile.
+ */
 export function ReceiptScanButton({
   quota,
   isProcessing,
   onFileSelect,
 }: ReceiptScanButtonProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
-  // Dengarkan event dari tombol floating scan di navbar mobile atau query parameter
+  // Listener event custom dari navbar modal (bila sudah di halaman /split-bill)
   useEffect(() => {
     const handleOpenScan = () => {
-      fileInputRef.current?.click();
+      galleryInputRef.current?.click();
     };
-
     window.addEventListener('billmate:open-scan', handleOpenScan);
-
-    if (window.location.search.includes('scan=1')) {
-      fileInputRef.current?.click();
-    }
-
-    return () => {
-      window.removeEventListener('billmate:open-scan', handleOpenScan);
-    };
+    return () => window.removeEventListener('billmate:open-scan', handleOpenScan);
   }, []);
-
-  const handleButtonClick = () => {
-    if (isProcessing) return;
-    fileInputRef.current?.click();
-  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       onFileSelect(file);
-      // Reset input agar user bisa memilih file yang sama jika ingin mencoba ulang
       e.target.value = '';
     }
   };
 
-  // 1. Kondisi jika Pengguna adalah Tamu (Guest di /coba)
+  // 1. Tamu
   if (quota.isGuest) {
     return (
       <div className="rounded-2xl border border-line bg-gray-50/80 p-4 sm:p-5">
@@ -66,7 +58,6 @@ export function ReceiptScanButton({
               </p>
             </div>
           </div>
-
           <div className="flex items-center gap-2">
             <Link
               to="/login"
@@ -86,7 +77,7 @@ export function ReceiptScanButton({
     );
   }
 
-  // 2. Kondisi jika Pengguna Paket Free
+  // 2. Paket Free
   if (quota.plan === 'free') {
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 sm:p-5">
@@ -98,19 +89,18 @@ export function ReceiptScanButton({
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-ink text-sm sm:text-base">Auto Scan Struk</span>
-                <span className="rounded-md bg-amber-200/70 px-2 py-0.5 text-[11px] font-semibold text-amber-900">Plus & Pro</span>
+                <span className="rounded-md bg-amber-200/70 px-2 py-0.5 text-[11px] font-semibold text-amber-900">Plus &amp; Pro</span>
               </div>
               <p className="mt-0.5 text-xs text-amber-900/80">
                 Fitur auto scan tidak tersedia untuk paket Free. Upgrade untuk menikmati 10 scan/bulan.
               </p>
             </div>
           </div>
-
           <Link
             to="/upgrade"
             className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-dark px-4 py-2 text-xs font-bold text-white transition hover:bg-ink-muted"
           >
-            <span>Upgrade ke /upgrade</span>
+            <span>Upgrade Sekarang</span>
             <ArrowUpRight size={14} />
           </Link>
         </div>
@@ -118,16 +108,28 @@ export function ReceiptScanButton({
     );
   }
 
-  // 3. Kondisi jika Kuota Habis (Plus/Pro)
+  // 3. Plus / Pro — tampilkan tombol kamera + galeri
   const isOutOfQuota = quota.remaining <= 0;
 
   return (
     <div className="rounded-2xl border border-line bg-white p-4 sm:p-5 shadow-sm transition hover:border-lime">
+
+      {/* Hidden inputs — menggunakan teknik label+id agar kompatibel mobile */}
       <input
-        ref={fileInputRef}
+        ref={cameraInputRef}
+        id="splitbill-scan-camera"
         type="file"
         accept="image/*"
-        className="hidden"
+        capture="environment"
+        className="sr-only"
+        onChange={handleFileChange}
+      />
+      <input
+        ref={galleryInputRef}
+        id="splitbill-scan-gallery"
+        type="file"
+        accept="image/*"
+        className="sr-only"
         onChange={handleFileChange}
       />
 
@@ -157,6 +159,7 @@ export function ReceiptScanButton({
           </p>
         </div>
 
+        {/* Tombol aksi */}
         <div className="flex items-center gap-2 shrink-0">
           {isOutOfQuota ? (
             <Link
@@ -166,24 +169,38 @@ export function ReceiptScanButton({
               <span>Upgrade Kuota</span>
               <ArrowUpRight size={14} />
             </Link>
-          ) : (
-            <button
-              type="button"
-              onClick={handleButtonClick}
-              disabled={isProcessing}
-              className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition shadow-sm ${isProcessing
-                ? 'bg-gray-100 text-ink-muted/50 cursor-not-allowed'
-                : 'bg-lime text-ink hover:bg-lime-hover active:scale-95'
-                }`}
-            >
+          ) : isProcessing ? (
+            <div className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold bg-gray-100 text-ink-muted/50 cursor-not-allowed">
               <Camera size={18} />
-              <span>{isProcessing ? 'Memproses...' : 'Scan Struk'}</span>
-            </button>
+              <span>Memproses...</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              {/* Tombol Kamera */}
+              <label
+                htmlFor="splitbill-scan-camera"
+                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold bg-lime text-ink hover:bg-lime-hover active:scale-95 transition shadow-sm cursor-pointer select-none"
+                title="Ambil foto dengan kamera"
+              >
+                <Camera size={18} />
+                <span>Kamera</span>
+              </label>
+
+              {/* Tombol Galeri */}
+              <label
+                htmlFor="splitbill-scan-gallery"
+                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold border border-line bg-white text-ink hover:bg-gray-50 active:scale-95 transition shadow-sm cursor-pointer select-none"
+                title="Pilih dari galeri foto"
+              >
+                <ImageIcon size={18} />
+                <span>Galeri</span>
+              </label>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Teks Pemberitahuan Privasi */}
+      {/* Privasi */}
       <div className="mt-3.5 pt-3 border-t border-line/60">
         <p className="text-[11px] leading-relaxed text-ink-muted/80 flex items-start gap-1.5">
           <span className="shrink-0 text-sm">🔒</span>

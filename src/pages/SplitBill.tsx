@@ -351,7 +351,7 @@ function SplitBill() {
 
   // Tangani file scan struk dari modal navbar mobile (baik saat navigasi dari halaman lain maupun saat sudah di /split-bill)
   useEffect(() => {
-    // 1. Cek file di memori global
+    // 1. Cek file di memori global (dikirim dari ScanReceiptModal sebelum navigasi)
     const pendingFile = (window as any).__billmatePendingScanFile;
     if (pendingFile instanceof File) {
       delete (window as any).__billmatePendingScanFile;
@@ -359,11 +359,12 @@ function SplitBill() {
       return;
     }
 
-    // 2. Cek file dari router state
-    const stateFile = (location.state as any)?.pendingScanFile;
-    if (stateFile instanceof File) {
+    // 2. scanTimestamp di router state sebagai sinyal bahwa navigasi dari modal scan
+    const ts = (location.state as any)?.scanTimestamp;
+    if (ts) {
+      // Bersihkan state agar tidak diproses ulang saat refresh
       window.history.replaceState({}, document.title);
-      handleProcessReceiptFile(stateFile);
+      // File sudah dipegang window global — sudah ditangani di atas
     }
   }, [location.state]);
 
