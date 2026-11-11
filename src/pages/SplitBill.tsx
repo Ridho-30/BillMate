@@ -12,7 +12,7 @@ import {
   CheckCircle2,
   Utensils,
   X,
-  Save,
+  MessageCircle,
   ArrowLeft,
 } from 'lucide-react';
 import { auth } from '../firebase';
@@ -385,46 +385,93 @@ function SplitBill() {
   }, []);
 
   // Simpan tagihan dan deteksi koreksi user
-  const handleSaveBill = async () => {
-    if (hasMismatch) {
-      const confirmSave = window.confirm(
-        'Perhatian: Total hasil scan tidak cocok dengan struk. Apakah Anda yakin ingin tetap menyimpan tagihan ini?'
-      );
+  const handleShareWhatsApp = () => {
+  if (hasMismatch) {
+    const confirmShare = window.confirm(
+      'Perhatian: Total hasil scan tidak cocok dengan struk. Apakah Anda yakin ingin tetap membagikan tagihan ini?'
+    );
 
-      if (!confirmSave) return;
+    if (!confirmShare) return;
+  }
+
+  if (receiptScanId && originalSnapshot) {
+    const hasItemChanges =
+      items.length !== originalSnapshot.items.length ||
+      items.some((item, idx) => {
+        const orig = originalSnapshot.items[idx];
+
+        if (!orig) return true;
+
+        return (
+          orig.name !== item.name ||
+          orig.price !== item.price ||
+          orig.quantity !== item.quantity
+        );
+      });
+
+    const hasFeeChanges =
+      tax !== originalSnapshot.tax ||
+      service !== originalSnapshot.service ||
+      discount !== originalSnapshot.discount;
+
+    if (hasItemChanges || hasFeeChanges) {
+      void markReceiptScanCorrected(receiptScanId);
     }
+  }
 
-    if (receiptScanId && originalSnapshot) {
-      const hasItemChanges =
-        items.length !== originalSnapshot.items.length ||
-        items.some((item, idx) => {
-          const orig = originalSnapshot.items[idx];
+  const memberDetails = members.map((member) => {
+    const amount =
+      calculations.find((item) => item.id === member.id)?.amount || 0;
 
-          if (!orig) return true;
+    return `${member.name}: ${formatRupiah(amount)} — ${
+      member.paid ? '✓ Lunas' : 'Belum lunas'
+    }`;
+  });
 
-          return (
-            orig.name !== item.name ||
-            orig.price !== item.price ||
-            orig.quantity !== item.quantity
-          );
-        });
+  const itemDetails = items.map((item) => {
+    const selectedMembers = item.memberIds
+      .map((id) => members.find((member) => member.id === id)?.name)
+      .filter(Boolean)
+      .join(', ');
 
-      const hasFeeChanges =
-        tax !== originalSnapshot.tax ||
-        service !== originalSnapshot.service ||
-        discount !== originalSnapshot.discount;
+    return `- ${item.name} (${item.quantity}x): ${formatRupiah(
+      item.price * item.quantity
+    )}\n  Dipesan oleh: ${selectedMembers || 'Belum ditentukan'}`;
+  });
 
-      if (hasItemChanges || hasFeeChanges) {
-        await markReceiptScanCorrected(receiptScanId);
-      }
-    }
+  const message = [
+  '\u{1F9FE} *RINCIAN TAGIHAN BILLMATE*',
+  `*${activity}*`,
+  '',
+  '*Rincian Pesanan:*',
+  ...itemDetails,
+  '',
+  '*Ringkasan Biaya:*',
+  `Subtotal: ${formatRupiah(subtotal)}`,
+  `Pajak (${tax}%): ${formatRupiah(taxAmount)}`,
+  `Service (${service}%): ${formatRupiah(serviceAmount)}`,
+  `Diskon: ${formatRupiah(discount)}`,
+  `*TOTAL: ${formatRupiah(grandTotal)}*`,
+  '',
+  '*Pembagian per Anggota:*',
+  ...memberDetails,
+  '',
+  'Yuk, cek tagihan masing-masing dan jangan lupa bayar! \u{1F60A}',
+  '',
+  'Dibagikan melalui BillMate \u{1F49A}',
+].join('\n');
 
-    setSavedSuccessMessage('Tagihan berhasil disimpan!');
+const whatsappUrl =
+  `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
 
-    setTimeout(() => {
-      setSavedSuccessMessage(null);
-    }, 4000);
-  };
+window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+
+  setSavedSuccessMessage('Rincian tagihan siap dibagikan ke WhatsApp!');
+
+  setTimeout(() => {
+    setSavedSuccessMessage(null);
+  }, 4000);
+};
 
   const addMember = () => {
     if (!newMember.trim()) return;
@@ -579,25 +626,28 @@ function SplitBill() {
   return (
     <div className="min-h-screen bg-white text-ink font-sans">
       {/* Navbar disamakan dengan Group Wallet */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-5 py-5 flex items-center gap-4">
-          <button
-            type="button"
-            onClick={() => navigate('/dashboard')}
-            className="p-2 rounded-xl hover:bg-gray-100 transition"
-            aria-label="Kembali"
-          >
-            <ArrowLeft size={22} />
-          </button>
+      
+{/* HEADER */}
+<header className="bg-white border-b border-gray-200">
+  <div className="max-w-6xl mx-auto px-5 py-5 flex items-center gap-4">
+    <button
+      type="button"
+      onClick={() => navigate('/dashboard')}
+      className="p-2 rounded-xl hover:bg-gray-100 transition"
+      aria-label="Kembali"
+    >
+      <ArrowLeft size={22} />
+    </button>
 
-          <div>
-            <h1 className="text-2xl font-black italic">
-              Bill<span className="text-[#91D624]">Mate</span>
-            </h1>
-            <p className="text-sm text-gray-500">Split Bill</p>
-          </div>
-        </div>
-      </header>
+    <div>
+      <h1 className="text-2xl font-black italic">
+        Bill<span className="text-[#91D624]">Mate</span>
+      </h1>
+      <p className="text-sm text-gray-500">Personal Finance</p>
+    </div>
+  </div>
+</header>
+
 
       <main className="mx-auto max-w-6xl px-5 py-8 md:py-12">
         <div className="mb-8">
@@ -1174,11 +1224,11 @@ function SplitBill() {
               <div className="mt-6 pt-2">
                 <button
                   type="button"
-                  onClick={handleSaveBill}
+                  onClick={handleShareWhatsApp}
                   className="w-full min-h-[48px] flex items-center justify-center gap-2 rounded-xl bg-lime px-4 py-3 text-sm font-bold text-ink transition hover:bg-lime-hover active:scale-95"
                 >
-                  <Save size={18} />
-                  <span>Simpan Tagihan</span>
+                  <MessageCircle size={18} />
+                  <span>Bagikan ke WhatsApp</span>
                 </button>
               </div>
             </section>

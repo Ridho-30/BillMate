@@ -72,14 +72,14 @@ export default function PersonalFinance() {
 
       return Number.isFinite(parsedBalance)
         ? parsedBalance
-        : 1000000;
+        : 0;
     }
 
-    return 1000000;
+    return 0;
   });
 
-  const [income] = useState(2500000);
-  const [expense, setExpense] = useState(1500000);
+  const [income] = useState(0);
+  const [expense, setExpense] = useState(0);
 
   // Menyimpan saldo setiap kali berubah
   useEffect(() => {
@@ -96,38 +96,6 @@ export default function PersonalFinance() {
 
   // TRANSAKSI
   const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: 1,
-      title: 'Makan siang',
-      category: 'Makanan',
-      amount: 35000,
-      type: 'expense',
-      date: '5 Nov 2026',
-    },
-    {
-      id: 2,
-      title: 'Uang bulanan',
-      category: 'Pemasukan',
-      amount: 2500000,
-      type: 'income',
-      date: '1 Nov 2026',
-    },
-    {
-      id: 3,
-      title: 'Transportasi',
-      category: 'Transportasi',
-      amount: 25000,
-      type: 'expense',
-      date: '4 Nov 2026',
-    },
-    {
-      id: 4,
-      title: 'Belanja kebutuhan',
-      category: 'Belanja',
-      amount: 150000,
-      type: 'expense',
-      date: '3 Nov 2026',
-    },
   ]);
 
   // MODAL TRANSAKSI
@@ -282,43 +250,24 @@ export default function PersonalFinance() {
 
       {/* HEADER */}
       <header className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
+  <div className="max-w-6xl mx-auto px-5 py-5 flex items-center gap-4">
+    <button
+      type="button"
+      onClick={() => navigate('/dashboard')}
+      className="p-2 rounded-xl hover:bg-gray-100 transition"
+      aria-label="Kembali"
+    >
+      <ArrowLeft size={22} />
+    </button>
 
-          <div className="flex items-center gap-4">
-
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="p-2 rounded-xl hover:bg-gray-100 transition"
-            >
-              <ArrowLeft size={22} />
-            </button>
-
-            <h1 className="text-2xl font-black italic">
-              Bill<span className="text-[#91D624]">Mate</span>
-            </h1>
-
-          </div>
-
-          <div className="flex items-center gap-3">
-
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-bold">
-                {userName}
-              </p>
-
-              <p className="text-xs text-gray-400">
-                Personal Finance
-              </p>
-            </div>
-
-            <div className="w-10 h-10 rounded-full bg-[#E8F7CE] flex items-center justify-center font-bold text-[#659B19]">
-              {userName.charAt(0).toUpperCase()}
-            </div>
-
-          </div>
-
-        </div>
-      </header>
+    <div>
+      <h1 className="text-2xl font-black italic">
+        Bill<span className="text-[#91D624]">Mate</span>
+      </h1>
+      <p className="text-sm text-gray-500">Personal Finance</p>
+    </div>
+  </div>
+</header>
 
       {/* MAIN CONTENT */}
       <main className="max-w-6xl mx-auto px-6 py-10">
