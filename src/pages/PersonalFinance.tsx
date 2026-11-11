@@ -483,7 +483,7 @@ export default function PersonalFinance() {
                   </div>
 
                   <p className="font-bold text-lg mb-3">
-                    {formatRupiah(budget.limit)}
+                    {formatRupiah(remaining)}
                   </p>
 
                   <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden mb-3">
@@ -508,7 +508,7 @@ export default function PersonalFinance() {
                     </span>
 
                     <span>
-                      Sisa: {formatRupiah(remaining)}
+                      Budget: {formatRupiah(budget.limit)}
                     </span>
 
                   </div>
